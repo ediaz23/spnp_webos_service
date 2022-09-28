@@ -1,5 +1,7 @@
 
+const logger = require('./logger')
 const utils = require('./utils')
+
 
 class MediaDevice {
     
@@ -70,11 +72,11 @@ class MediaDevice {
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <s:Body>
         <u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1">
-            <ObjectID>${id}</ObjectID>
+            <ObjectID>${id || 0}</ObjectID>
             <BrowseFlag>BrowseDirectChildren</BrowseFlag>
             <Filter>*</Filter>
-            <StartingIndex>${start}</StartingIndex>
-            <RequestedCount>${count}</RequestedCount>
+            <StartingIndex>${start || 0}</StartingIndex>
+            <RequestedCount>${count || 0}</RequestedCount>
             <SortCriteria></SortCriteria>
         </u:Browse>
     </s:Body>
@@ -108,15 +110,16 @@ class MediaDevice {
      * @returns {Promise<Array<Object>>}
      */
     async search({id, start, count, search}) {
+        search = `dc:title contains "${search}" or upnp:album contains "${search}" or upnp:artist contains "${search}"`
         const req = `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <s:Body>
         <u:Search xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1">
-            <ContainerID>${id}</ContainerID>
+            <ContainerID>${id || 0}</ContainerID>
             <SearchCriteria>${search}</SearchCriteria>
             <Filter>*</Filter>
-            <StartingIndex>${start}</StartingIndex>
-            <RequestedCount>${count}</RequestedCount>
+            <StartingIndex>${start || 0}</StartingIndex>
+            <RequestedCount>${count || 0}</RequestedCount>
             <SortCriteria></SortCriteria>
         </u:Search>
     </s:Body>
@@ -127,16 +130,40 @@ class MediaDevice {
     }
 
     /**
+     * @param {{id: String}}
+     * @returns {Promise<Object>}
+     */
+    async getMetadata({id}) {
+        const req = `<?xml version="1.0" encoding="utf-8"?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+    <s:Body>
+        <u:Browse xmlns:u="urn:schemas-upnp-org:service:ContentDirectory:1">
+            <ObjectID>${id}</ObjectID>
+            <BrowseFlag>BrowseMetadata</BrowseFlag>
+            <Filter>*</Filter>
+            <StartingIndex>0</StartingIndex>
+            <RequestedCount>0</RequestedCount>
+            <SortCriteria></SortCriteria>
+        </u:Browse>
+    </s:Body>
+</s:Envelope>`;
+        /** @type {String} */
+        const data = await this.makeRequest('getMetadata', 'Browse', req)
+        const out = this.parseResponse(data, 'BrowseResponse')
+        return out && out.length ? out[0] : null
+    }
+
+    /**
      * @param {Object} data
      * @param {String} responseName
      * @returns {Array<Object>}
      */
     parseResponse(data, responseName) {
+        logger.debug('in parseResponse')
         const out = []
         let response = data?.Envelope?.Body
         response = response && response[responseName]
         if (response?.Result) {
-            console.log(response?.Result)
             const res = utils.xmlParse(response?.Result, {ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
             const items = utils.toArray(res['DIDL-Lite'].container)
             items.push(... (utils.toArray(res['DIDL-Lite'].item)))
@@ -149,6 +176,7 @@ class MediaDevice {
                 }
             }
         }
+        logger.debug('out parseResponse')
         return out
     }
 
@@ -158,6 +186,7 @@ class MediaDevice {
      * @returns {Object}
      */
     normalizeObj(item) {
+        logger.debug('in normalizeObj')
         for(const key of Object.keys(item)) {
             if (key.startsWith('@_')) {
                 const newKey = key.replace('@_', '')
@@ -172,6 +201,7 @@ class MediaDevice {
                 }
             }
         }
+        logger.debug('out normalizeObj')
         return item
     }
 }
