@@ -73,11 +73,13 @@ class CmsService extends EventEmitter {
             && /MediaServer:[0-5]$/.test(headers.USN)) {
             try {
                 const schema = await utils.makeRequest('addDevices', headers.LOCATION, {method: 'get'})
-                const deviceType = schema?.root?.device?.deviceType;
-                if (deviceType) {
-                    const device = new MediaDevice(schema, headers, rinfo)
-                    this.devices[headers.USN] = device
-                    logger.info(`Device found ${device.getName()} ${headers.USN} - ${deviceType}`)
+                if (schema && schema.root && schema.root.device) {
+                    const deviceType = schema.root.device.deviceType;
+                    if (deviceType) {
+                        const device = new MediaDevice(schema, headers, rinfo)
+                        this.devices[headers.USN] = device
+                        logger.info(`Device found ${device.getName()} ${headers.USN} - ${deviceType}`)
+                    }
                 }
             } catch(err) {
                 this.devices[headers.USN] = null

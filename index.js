@@ -1,16 +1,30 @@
-//    "renderer-finder": "^0.1.3",
-//    "upnp-device-client": "^1.0.2"
 
-process.env.LOG_LEVEL = 'debug'
 const cmsService = require('./src/CmsService')
+const MediaDevice = require('./src/MediaDevice')
+const spnpUtil = require('./src/utils')
 
-cmsService.startSsdp().then(() => {
-    cmsService.searchSsdp().then(async devices => {
-//        return devices[0].browse({id: '64$5', start: 0, count: 0}).then(console.log)
-//        return devices[0].getSearchCapabilities().then(console.log)
-//        return devices[0].search({id: 0, start: 0, count: 0, search: 'dc:title contains "Dance"'}).then(console.log)
-        return devices[0].getMetadata({id: '64$5'}).then(console.log)
+
+let Service = null
+
+
+try {
+    Service = require('webos-service')
+} catch (_e) {
+    // nada
+}
+if (Service) {
+    /** @type {import('webos-service').default} */
+    const service = new Service('com.spnp.media.service')
+
+    service.register('startSsdp', message => {
+        cmsService.startSsdp()
+        .then(() => message.respond({status: true}))
+        .catch(error => message.respond({status: true, error: error}))
     })
-})
-console.log('hola')
+}
 
+module.exports = {
+    cmsService,
+    MediaDevice,
+    spnpUtil,
+}

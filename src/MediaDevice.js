@@ -21,14 +21,23 @@ class MediaDevice {
      * @returns {string}
      */
     getName() {
-        return this.schema?.root?.device?.friendlyName || this.schema?.root?.device?.modelName;
+        let out = null
+        if (this.schema && this.schema.root && this.schema.root.device) {
+            out = this.schema.root.device.friendlyName || this.schema.root.device.modelName
+        }
+        return out;
     }
 
     /**
      * @returns {array}
      */
     getServices() {
-        return utils.toArray(this.schema?.root?.device?.serviceList?.service)
+        let out = []
+        if (this.schema && this.schema.root && this.schema.root.device &&
+                this.schema.root.device.serviceList && this.schema.root.device.serviceList.service) {
+            out = utils.toArray(this.schema.root.device.serviceList.service)
+        }
+        return out
     }
     
     /**
@@ -98,7 +107,12 @@ class MediaDevice {
     </s:Body>
 </s:Envelope>`;
         const data = await this.makeRequest('getSearchCapabilities', 'GetSearchCapabilities', body)
-        return data?.Envelope?.Body?.GetSearchCapabilitiesResponse?.SearchCaps
+        let out = null
+        if (data && data.Envelope && data.Envelope.Body && data.Envelope.Body.GetSearchCapabilitiesResponse &&
+                data.Envelope.Body.GetSearchCapabilitiesResponse.SearchCaps) {
+            out = data.Envelope.Body.GetSearchCapabilitiesResponse.SearchCaps
+        }
+        return out
     }
 
     /**
@@ -161,18 +175,20 @@ class MediaDevice {
     parseResponse(data, responseName) {
         logger.debug('in parseResponse')
         const out = []
-        let response = data?.Envelope?.Body
-        response = response && response[responseName]
-        if (response?.Result) {
-            const res = utils.xmlParse(response?.Result, {ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
-            const items = utils.toArray(res['DIDL-Lite'].container)
-            items.push(... (utils.toArray(res['DIDL-Lite'].item)))
-            const keys = new Set()
-            for (const item of items) {
-                const key = `${item.class}-${item.title}`
-                if (!keys.has(key)) {
-                    out.push(this.normalizeObj(item))
-                    keys.add(key)
+        if (data && data.Envelope && data.Envelope.Body) {
+            let response = data.Envelope.Body
+            response = response && response[responseName]
+            if (response && response.Result) {
+                const res = utils.xmlParse(response.Result, {ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
+                const items = utils.toArray(res['DIDL-Lite'].container)
+                items.push(... (utils.toArray(res['DIDL-Lite'].item)))
+                const keys = new Set()
+                for (const item of items) {
+                    const key = `${item.class}-${item.title}`
+                    if (!keys.has(key)) {
+                        out.push(this.normalizeObj(item))
+                        keys.add(key)
+                    }
                 }
             }
         }
