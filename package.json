@@ -1,38 +1,46 @@
 {
-  "name": "spnp_webos_service",
-  "version": "1.0.0",
-  "description": "DNLA / UPnP Webos Services",
-  "main": "index.js",
-  "scripts": {
-    "play": "node index.js",
-    "lint": "npx eslint --ext .js ./",
-    "test": "jest"
-  },
-  "engines": {
-    "node": ">=8.12.0"
-  },
-  "engineStrict": true,
-  "keywords": [
-    "dnla",
-    "upnp",
-    "ssdp",
-    "webos"
-  ],
-  "author": "Esteban Díaz <esteban.diazt23@gmail.com>",
-  "license": "Apache-2.0",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/ediaz23/spnp_webos_service"
-  },
-  "dependencies": {
-    "fast-xml-parser": "^4.0.10",
-    "node-fetch": "^2.6.7",
-    "node-ssdp": "^4.0.1",
-    "winston": "^2.4.6"
-  },
-  "devDependencies": {
-    "eslint": "^6.5.0",
-    "jest": "^24.9.0",
-    "webos-service": "git+https://github.com/webosose/nodejs-module-webos-service.git"
-  }
+    "name": "spnp_webos_service",
+    "version": "1.0.0",
+    "description": "DNLA / UPnP Webos Services",
+    "main": "index.js",
+    "scripts": {
+        "play": "node index.js",
+        "lint": "npx eslint --ext .js ./",
+        "test": "jest",
+        "build": "gulp build",
+        "clean": "gulp clean"
+    },
+    "engines": {
+        "node": ">=8.12.0"
+    },
+    "engineStrict": true,
+    "keywords": [
+        "dnla",
+        "upnp",
+        "ssdp",
+        "webos"
+    ],
+    "author": "Esteban Díaz <esteban.diazt23@gmail.com>",
+    "license": "Apache-2.0",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ediaz23/spnp_webos_service"
+    },
+    "dependencies": {
+        "encoding": "^0.1.13",
+        "fast-xml-parser": "^4.0.10",
+        "gulp-shell": "^0.8.0",
+        "node-fetch": "^2.6.7",
+        "node-ssdp": "^4.0.1",
+        "winston": "^2.4.6"
+    },
+    "devDependencies": {
+        "del": "^4.1.1",
+        "eslint": "^6.5.0",
+        "gulp": "^4.0.2",
+        "gulp-jshint": "^2.1.0",
+        "jest": "^24.9.0",
+        "jshint": "^2.13.5",
+        "webos-service": "git+https://github.com/webosose/nodejs-module-webos-service.git"
+    }
 }

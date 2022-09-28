@@ -68,9 +68,9 @@ class CmsService extends EventEmitter {
      * @param {import('dgram').RemoteInfo} rinfo
      */
     async addDevices(headers, rinfo) {
-        if (headers.LOCATION && headers.USN 
-            && this.devices[headers.USN] === undefined
-            && /MediaServer:[0-5]$/.test(headers.USN)) {
+        if (headers.LOCATION && headers.USN &&
+            this.devices[headers.USN] === undefined &&
+            /MediaServer:[0-5]$/.test(headers.USN)) {
             try {
                 const schema = await utils.makeRequest('addDevices', headers.LOCATION, {method: 'get'})
                 if (schema && schema.root && schema.root.device) {
