@@ -8,7 +8,8 @@
         "lint": "npx eslint --ext .js ./",
         "test": "jest",
         "build": "gulp build",
-        "clean": "gulp clean"
+        "clean": "gulp clean",
+        "build_prod": "npm ci --only=production"
     },
     "engines": {
         "node": ">=8.12.0"
