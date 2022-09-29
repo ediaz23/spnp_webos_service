@@ -1,8 +1,7 @@
 {
-    "id": "com.spnp.media.service",
+    "id": "com.spnp.webos.player.service",
     "description": "DNLA / UPnP Webos Service",
     "services": [{
-        "name": "com.spnp.media.service",
-        "description": "DNLA / UPnP Webos Service"
+        "name": "com.spnp.webos.player.service"
     }]
 }

@@ -14,7 +14,7 @@ try {
 }
 if (Service) {
     /** @type {import('webos-service').default} */
-    const service = new Service('com.spnp.media.service')
+    const service = new Service('com.spnp.webos.player.service')
 
     service.register('startSsdp', message => {
         cmsService.startSsdp()
