@@ -10,10 +10,24 @@ const logger = new (winston.Logger)({
         new (winston.transports.Console)({
             timestamp: () => Date.now(),
             formatter: (options) => {
+                let extra = ''
+                
+                if (options.meta) {
+                    const keys = Object.keys(options.meta)
+                    if (keys.length) {
+                        if (keys.length === 2 && keys.includes('message') && keys.includes('stack')) {
+                            /** @type {Error} */
+                            const err = options.meta
+                            extra = `\n  message:${err.name}\n  stack:${err.stack}`
+                        } else {
+                            extra = '\n'+ JSON.stringify(options.meta, null, '  ')
+                        }
+                    }
+                }
+                
                 return options.timestamp() + ' ' +
                       config.colorize(options.level, options.level.toUpperCase()) + ' ' +
-                      (options.message ? options.message : '') +
-                      (options.meta && Object.keys(options.meta).length ? '\n'+ JSON.stringify(options.meta, null, '  ') : '' );
+                      (options.message ? options.message : '') + extra;
             }
         })
     ]

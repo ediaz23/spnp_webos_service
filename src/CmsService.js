@@ -13,7 +13,10 @@ class CmsService extends EventEmitter {
         /** @type {Object.<string, MediaDevice>} */
         this.devices = []
         this.currentDevice = null
-        this.client = new Client()
+        this.client = new Client({customLogger: (message, ...extra) => {
+            logger.debug(message)
+            logger.debug(extra)
+        }})
         this.client.on('response', this.messageSsdp.bind(this))
         this.client.on('notify', this.notifySsdp.bind(this))
     }
@@ -22,6 +25,7 @@ class CmsService extends EventEmitter {
      * @returns {Promise}
      */
     async startSsdp() {
+        logger.info('startSsdp')
         return this.client.start()
     }
 
@@ -29,6 +33,7 @@ class CmsService extends EventEmitter {
      * @returns {Promise}
      */
     async stopSsdp() {
+        logger.info('stopSsdp')
         return this.client.stop()
     }
 
@@ -37,13 +42,18 @@ class CmsService extends EventEmitter {
      * @returns {Promise<Array<MediaDevice>>}
      */
     async searchSsdp(st) {
-        return new Promise( res => {
-            st = st || 'ssdp:all'
-            this.client.search(st)
-            setTimeout(() => {
-                this.client.stop()
-                res(Object.values(this.devices))
-            }, 2000)
+        logger.info('searchSsdp')
+        return new Promise((res, rej) => {
+            try {
+                st = st || 'ssdp:all'
+                this.client.search(st)
+                setTimeout(() => {
+                    this.client.stop()
+                    res(Object.values(this.devices))
+                }, 20000)
+            } catch (error) {
+                rej(error)
+            }
         })
     }
     
@@ -58,6 +68,7 @@ class CmsService extends EventEmitter {
      * @param {import('dgram').RemoteInfo} rinfo
      */
     async messageSsdp(headers, statusCode, rinfo) {
+        logger.info('messageSsdp')
         if (statusCode === 200) {
             await this.addDevices(headers, rinfo)
         }
@@ -68,6 +79,7 @@ class CmsService extends EventEmitter {
      * @param {import('dgram').RemoteInfo} rinfo
      */
     async addDevices(headers, rinfo) {
+        logger.info('addDevices')
         if (headers.LOCATION && headers.USN &&
             this.devices[headers.USN] === undefined &&
             /MediaServer:[0-5]$/.test(headers.USN)) {

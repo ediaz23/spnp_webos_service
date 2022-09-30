@@ -10,7 +10,7 @@ gulp.task('clean', function(){
 })
 
 gulp.task('misc', () => 
-    gulp.src(['LICENSE', 'package.json', 'README.md', 'package-lock.json'])
+    gulp.src(['LICENSE', 'package.json', 'README.md', 'package-lock.json', 'services.json'])
     .pipe(gulp.dest('dist'))
 )
 
@@ -28,14 +28,22 @@ gulp.task('js', () =>
     .pipe(gulp.dest('dist/src'))
 )
 
-gulp.task('node_insta', (cb) => {
+gulp.task('node-insta', (cb) => {
+    exec('npm install --prefix ./dist', (err, stdout, stderr) => {
+        console.log(stdout)
+        console.log(stderr)
+        cb(err)
+    })
+})
+gulp.task('build', gulp.series('clean', 'misc', 'index', 'js', 'node-insta'));
+
+gulp.task('node-insta-p', (cb) => {
     exec('npm ci --only=production --prefix ./dist', (err, stdout, stderr) => {
         console.log(stdout)
         console.log(stderr)
         cb(err)
     })
 })
-
-gulp.task('build', gulp.series('clean', 'misc', 'index', 'js', 'node_insta'));
+gulp.task('build-p', gulp.series('clean', 'misc', 'index', 'js', 'node-insta-p'));
 
 module.exports = gulp

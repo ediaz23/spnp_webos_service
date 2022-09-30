@@ -1,6 +1,7 @@
 
 const logger = require('./logger')
 const utils = require('./utils')
+const { URL } = require('url')
 
 
 class MediaDevice {
@@ -12,9 +13,10 @@ class MediaDevice {
      */
     constructor (schema, headers, rinfo) {
         this.schema = schema
-        this.key = headers.USN
+        this.id = headers.USN
         this.location = new URL(headers.LOCATION)
         this.rinfo = rinfo
+        this.name = this.getName()
     }
     
     /**
@@ -147,7 +149,7 @@ class MediaDevice {
      * @param {{id: String}}
      * @returns {Promise<Object>}
      */
-    async getMetadata({id}) {
+    async getMetadata({ id }) {
         const req = `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <s:Body>

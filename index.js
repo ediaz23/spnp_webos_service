@@ -2,29 +2,99 @@
 const cmsService = require('./src/CmsService')
 const MediaDevice = require('./src/MediaDevice')
 const spnpUtil = require('./src/utils')
+const logger = require('./src/logger')
 
 
-let Service = null
+logger.info('init service')
 
+/** @type {import('webos-service').default} */
+let service = null
 
 try {
-    Service = require('webos-service')
+    const Service = require('webos-service')
+    service = new Service('com.spnp.webos.player.service')
 } catch (_e) {
-    // nada
+    service = {
+        register: (name, fn) => {
+            this[name] = fn
+        }
+    }
 }
-if (Service) {
-    /** @type {import('webos-service').default} */
-    const service = new Service('com.spnp.webos.player.service')
 
-    service.register('startSsdp', message => {
-        cmsService.startSsdp()
-        .then(() => message.respond({status: true}))
-        .catch(error => message.respond({status: true, error: error}))
-    })
-}
+service.register('startSsdp', async message => {
+    try {
+        await cmsService.startSsdp()
+        message.respond({status: true});
+    } catch (error) {
+        message.respond({ returnValue: false, error })
+    }
+})
+
+service.register('stopSsdp', async message => {
+    try {
+        await cmsService.stopSsdp()
+        message.respond({status: false});
+    } catch (error) {
+        message.respond({ returnValue: false, error })
+    }
+})
+
+service.register('searchSsdp', async message => {
+    try {
+        const devices = await cmsService.searchSsdp(message.payload)
+        message.respond({ devices })
+    } catch(error) {
+        message.respond({ returnValue: false, error })
+    }
+})
+
+service.register('browse', async message => {
+    try {
+        const { deviceId } = message.payload
+        const device = cmsService.getDevice(deviceId)
+        const files = device.browse(message.payload)
+        message.respond({ files })
+    } catch(error) {
+        message.respond({ returnValue: false, error })
+    }
+})
+
+service.register('searchCapabilities', async message => {
+    try {
+        const { deviceId } = message.payload
+        const device = cmsService.getDevice(deviceId)
+        const capabilities = device.getSearchCapabilities()
+        message.respond({ capabilities })
+    } catch(error) {
+        message.respond({ returnValue: false, error })
+    }
+})
+
+service.register('search', async message => {
+    try {
+        const { deviceId } = message.payload
+        const device = cmsService.getDevice(deviceId)
+        const files = device.search(message.payload)
+        message.respond({ files })
+    } catch(error) {
+        message.respond({ returnValue: false, error })
+    }
+})
+
+service.register('metadata', async message => {
+    try {
+        const { deviceId, itemId } = message.payload
+        const device = cmsService.getDevice(deviceId)
+        const file = device.getMetadata({id: itemId})
+        message.respond({ file })
+    } catch(error) {
+        message.respond({ returnValue: false, error })
+    }
+})
 
 module.exports = {
     cmsService,
     MediaDevice,
     spnpUtil,
+    webosService: service
 }
