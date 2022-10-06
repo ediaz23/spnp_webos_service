@@ -41,7 +41,8 @@ service.register('stopSsdp', async message => {
 
 service.register('searchSsdp', async message => {
     try {
-        const devices = await cmsService.searchSsdp(message.payload)
+        const { search } = message.payload
+        const devices = await cmsService.searchSsdp(search)
         message.respond({ devices })
     } catch(error) {
         message.respond({ returnValue: false, error })
