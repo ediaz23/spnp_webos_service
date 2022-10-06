@@ -53,7 +53,7 @@ service.register('browse', async message => {
     try {
         const { deviceId } = message.payload
         const device = cmsService.getDevice(deviceId)
-        const files = device.browse(message.payload)
+        const files = await device.browse(message.payload)
         message.respond({ files })
     } catch(error) {
         message.respond({ returnValue: false, error })
@@ -64,7 +64,7 @@ service.register('searchCapabilities', async message => {
     try {
         const { deviceId } = message.payload
         const device = cmsService.getDevice(deviceId)
-        const capabilities = device.getSearchCapabilities()
+        const capabilities = await device.getSearchCapabilities()
         message.respond({ capabilities })
     } catch(error) {
         message.respond({ returnValue: false, error })
@@ -75,7 +75,7 @@ service.register('search', async message => {
     try {
         const { deviceId } = message.payload
         const device = cmsService.getDevice(deviceId)
-        const files = device.search(message.payload)
+        const files = await device.search(message.payload)
         message.respond({ files })
     } catch(error) {
         message.respond({ returnValue: false, error })
@@ -86,7 +86,7 @@ service.register('metadata', async message => {
     try {
         const { deviceId, itemId } = message.payload
         const device = cmsService.getDevice(deviceId)
-        const file = device.getMetadata({id: itemId})
+        const file = await device.getMetadata({id: itemId})
         message.respond({ file })
     } catch(error) {
         message.respond({ returnValue: false, error })
