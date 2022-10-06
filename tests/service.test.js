@@ -20,7 +20,9 @@ describe('Service', () => {
     })
     
     test('Service searchSsdp', async() => {
-        return cmsService.searchSsdp().then(devices => {
+        return cmsService.startSsdp()
+        .then(() => cmsService.searchSsdp())
+        .then(devices => {
             expect(devices).toBeDefined()
             expect(devices).not.toBeNull()
             expect(Array.isArray(devices)).toBe(true)
