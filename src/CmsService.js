@@ -11,8 +11,7 @@ class CmsService extends EventEmitter {
     constructor() {
         super()
         /** @type {Object.<string, MediaDevice>} */
-        this.devices = []
-        this.currentDevice = null
+        this.devices = {}
         this.client = new Client({customLogger: (message, ...extra) => {
             logger.debug(message)
             logger.debug(extra)
