@@ -15,7 +15,7 @@ try {
     service = new Service('com.spnp.webos.player.service')
 } catch (_e) {
     service = {
-        register: (name, fn) => {
+        register: function(name, fn) {
             this[name] = fn
         }
     }
