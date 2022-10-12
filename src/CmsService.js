@@ -12,15 +12,17 @@ class CmsService extends EventEmitter {
         super()
         /** @type {Object.<string, MediaDevice>} */
         this.devices = {}
-        this.client = new Client({customLogger: (message, ...extra) => {
-            logger.debug(message)
-            logger.debug(extra)
-        }})
+        this.client = new Client({
+            customLogger: (message, ...extra) => {
+                logger.debug(message)
+                logger.debug(extra)
+            }
+        })
         this.client.on('response', this.messageSsdp.bind(this))
         this.client.on('notify', this.notifySsdp.bind(this))
         this.started = false
     }
-    
+
     /**
      * @returns {Promise}
      */
@@ -38,10 +40,10 @@ class CmsService extends EventEmitter {
     async stopSsdp() {
         logger.debug('stopSsdp')
         if (this.started) {
-           this.client.stop()
-           this.started = false
+            this.client.stop()
+            this.started = false
         }
-        
+
     }
 
     /**
@@ -65,7 +67,7 @@ class CmsService extends EventEmitter {
             }
         })
     }
-    
+
     notifySsdp(notify) {
         logger.info('notifySsdp')
         logger.info(notify)
@@ -82,7 +84,7 @@ class CmsService extends EventEmitter {
             await this.addDevices(headers, rinfo)
         }
     }
-    
+
     /**
      * @param {import('node-ssdp').SsdpHeaders} headers
      * @param {import('dgram').RemoteInfo} rinfo
@@ -93,7 +95,7 @@ class CmsService extends EventEmitter {
             this.devices[headers.USN] === undefined &&
             /MediaServer:[0-5]$/.test(headers.USN)) {
             try {
-                const schema = await utils.makeRequest('addDevices', headers.LOCATION, {method: 'get'})
+                const schema = await utils.makeRequest('addDevices', headers.LOCATION, { method: 'get' })
                 if (schema && schema.root && schema.root.device) {
                     const deviceType = schema.root.device.deviceType;
                     if (deviceType) {
@@ -102,7 +104,7 @@ class CmsService extends EventEmitter {
                         logger.info(`Device found ${device.getName()} ${headers.USN} - ${deviceType}`)
                     }
                 }
-            } catch(err) {
+            } catch (err) {
                 this.devices[headers.USN] = null
                 logger.error('Error query location')
                 logger.error(err)

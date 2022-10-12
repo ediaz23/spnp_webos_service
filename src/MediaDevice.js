@@ -5,20 +5,20 @@ const { URL } = require('url')
 
 
 class MediaDevice {
-    
+
     /**
      * @param {String} schema
      * @param {import('node-ssdp').SsdpHeaders} headers
      * @param {import('dgram').RemoteInfo} rinfo
      */
-    constructor (schema, headers, rinfo) {
+    constructor(schema, headers, rinfo) {
         this.schema = schema
         this.id = headers.USN
         this.location = new URL(headers.LOCATION)
         this.rinfo = rinfo
         this.name = this.getName()
     }
-    
+
     /**
      * @returns {string}
      */
@@ -36,12 +36,12 @@ class MediaDevice {
     getServices() {
         let out = []
         if (this.schema && this.schema.root && this.schema.root.device &&
-                this.schema.root.device.serviceList && this.schema.root.device.serviceList.service) {
+            this.schema.root.device.serviceList && this.schema.root.device.serviceList.service) {
             out = utils.toArray(this.schema.root.device.serviceList.service)
         }
         return out
     }
-    
+
     /**
      * @returns {string}
      */
@@ -67,7 +67,7 @@ class MediaDevice {
                 SOAPAction: `"urn:schemas-upnp-org:service:ContentDirectory:1#${action}"`
             },
             body: body,
-            parseOption: {ignoreAttributes: false, removeNSPrefix: true, trimValues: true }
+            parseOption: { ignoreAttributes: false, removeNSPrefix: true, trimValues: true }
         })
     }
 
@@ -78,7 +78,7 @@ class MediaDevice {
      * @param {Number} obj.count
      * @returns {Promise<Array<Object>>}
      */
-    async browse({id, start, count}) {
+    async browse({ id, start, count }) {
         const req = `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
     <s:Body>
@@ -111,7 +111,7 @@ class MediaDevice {
         const data = await this.makeRequest('getSearchCapabilities', 'GetSearchCapabilities', body)
         let out = null
         if (data && data.Envelope && data.Envelope.Body && data.Envelope.Body.GetSearchCapabilitiesResponse &&
-                data.Envelope.Body.GetSearchCapabilitiesResponse.SearchCaps) {
+            data.Envelope.Body.GetSearchCapabilitiesResponse.SearchCaps) {
             out = data.Envelope.Body.GetSearchCapabilitiesResponse.SearchCaps
         }
         return out
@@ -125,7 +125,7 @@ class MediaDevice {
      * @param {String} obj.search
      * @returns {Promise<Array<Object>>}
      */
-    async search({id, start, count, search}) {
+    async search({ id, start, count, search }) {
         search = `dc:title contains "${search}" or upnp:album contains "${search}" or upnp:artist contains "${search}"`
         const req = `<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
@@ -181,7 +181,7 @@ class MediaDevice {
             let response = data.Envelope.Body
             response = response && response[responseName]
             if (response && response.Result) {
-                const res = utils.xmlParse(response.Result, {ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
+                const res = utils.xmlParse(response.Result, { ignoreAttributes: false, removeNSPrefix: true, trimValues: true })
                 const items = utils.toArray(res['DIDL-Lite'].container)
                 items.push(... (utils.toArray(res['DIDL-Lite'].item)))
                 const keys = new Set()
@@ -205,17 +205,29 @@ class MediaDevice {
      */
     normalizeObj(item) {
         logger.debug('in normalizeObj')
-        for(const key of Object.keys(item)) {
+
+        const normalizeRes = res => {
+            res = this.normalizeObj(res)
+            if (res['#text']) {
+                res.url = res['#text']
+                delete res['#text']
+            }
+            return res
+        }
+
+        for (const key of Object.keys(item)) {
             if (key.startsWith('@_')) {
                 const newKey = key.replace('@_', '')
                 item[newKey] = item[key]
                 delete item[key]
-                if (item.res) {
-                    item.res = this.normalizeObj(item.res)
-                    if (item.res['#text']) {
-                        item.res.url = item.res['#text']
-                        delete item.res['#text']
-                    }
+            } else if (key === 'albumArtURI') {
+                item[key] = item[key]['#text']
+            }
+            if (item.res) {
+                if (Array.isArray(item.res)) {
+                    item.res = item.res.map(res => normalizeRes(res))
+                } else {
+                    item.res = normalizeRes(item.res)
                 }
             }
         }

@@ -37,12 +37,12 @@ async function logRes(fnName, res) {
             const r = await res.json()
             if (r && r.error) {
                 msg = r.error
-            } 
+            }
             logger.error(r)
-        } catch(_e) {
+        } catch (_e) {
             // ignore
         }
-        if (!msg) { 
+        if (!msg) {
             msg = res.statusText ? res.statusText : 'Unexpected error.'
         }
         logger.error(msg)
@@ -71,7 +71,7 @@ async function makeRequest(fnName, url, reqConfig) {
         if (out) {
             out = xmlParse(out, reqConfig.parseOption)
         }
-    } catch(_e) {
+    } catch (_e) {
         // nothing
     }
     return out
