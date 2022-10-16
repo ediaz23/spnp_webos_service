@@ -21,21 +21,27 @@ try {
     }
 }
 
+const errorHandler = (message, error, name) => {
+    message.respond({ returnValue: false, error: String(error) })
+    logger.error(name)
+    logger.error(error)
+}
+
 service.register('startSsdp', async message => {
     try {
         await cmsService.startSsdp()
-        message.respond({status: true});
+        message.respond({ status: true });
     } catch (error) {
-        message.respond({ returnValue: false, error })
+        errorHandler(message, error, 'startSsdp')
     }
 })
 
 service.register('stopSsdp', async message => {
     try {
         await cmsService.stopSsdp()
-        message.respond({status: false});
+        message.respond({ status: false });
     } catch (error) {
-        message.respond({ returnValue: false, error })
+        errorHandler(message, error, 'stopSsdp')
     }
 })
 
@@ -44,52 +50,56 @@ service.register('searchSsdp', async message => {
         const { search } = message.payload
         const devices = await cmsService.searchSsdp(search)
         message.respond({ devices })
-    } catch(error) {
-        message.respond({ returnValue: false, error })
+    } catch (error) {
+        errorHandler(message, error, 'searchSsdp')
     }
 })
 
 service.register('browse', async message => {
     try {
-        const { deviceId } = message.payload
-        const device = cmsService.getDevice(deviceId)
+        const { deviceData } = message.payload
+        const device = new MediaDevice()
+        device.updateFromJSON(deviceData)
         const files = await device.browse(message.payload)
         message.respond({ files })
-    } catch(error) {
-        message.respond({ returnValue: false, error })
+    } catch (error) {
+        errorHandler(message, error, 'browse')
     }
 })
 
 service.register('searchCapabilities', async message => {
     try {
-        const { deviceId } = message.payload
-        const device = cmsService.getDevice(deviceId)
+        const { deviceData } = message.payload
+        const device = new MediaDevice()
+        device.updateFromJSON(deviceData)
         const capabilities = await device.getSearchCapabilities()
         message.respond({ capabilities })
-    } catch(error) {
-        message.respond({ returnValue: false, error })
+    } catch (error) {
+        errorHandler(message, error, 'searchCapabilities')
     }
 })
 
 service.register('search', async message => {
     try {
-        const { deviceId } = message.payload
-        const device = cmsService.getDevice(deviceId)
+        const { deviceData } = message.payload
+        const device = new MediaDevice()
+        device.updateFromJSON(deviceData)
         const files = await device.search(message.payload)
         message.respond({ files })
-    } catch(error) {
-        message.respond({ returnValue: false, error })
+    } catch (error) {
+        errorHandler(message, error, 'search')
     }
 })
 
 service.register('metadata', async message => {
     try {
-        const { deviceId, itemId } = message.payload
-        const device = cmsService.getDevice(deviceId)
-        const file = await device.getMetadata({id: itemId})
+        const { deviceData } = message.payload
+        const device = new MediaDevice()
+        device.updateFromJSON(deviceData)
+        const file = await device.getMetadata({ id: itemId })
         message.respond({ file })
-    } catch(error) {
-        message.respond({ returnValue: false, error })
+    } catch (error) {
+        errorHandler(message, error, 'metadata')
     }
 })
 

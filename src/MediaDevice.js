@@ -12,34 +12,71 @@ class MediaDevice {
      * @param {import('dgram').RemoteInfo} rinfo
      */
     constructor(schema, headers, rinfo) {
-        this.schema = schema
-        this.id = headers.USN
-        this.location = new URL(headers.LOCATION)
+        if (headers) {
+            this.id = headers.USN ? headers.USN : null
+            this.location = headers.LOCATION ? new URL(headers.LOCATION) : null
+        } else {
+            this.id = null
+            this.location = null
+        }
+        if (schema) {
+            this.name = this.computeName(schema)
+            this.services = this.computeServices(schema)
+        } else {
+            this.name = ''
+            this.services = []
+        }
         this.rinfo = rinfo
-        this.name = this.getName()
     }
 
     /**
-     * @returns {string}
+     * @param {Object} data
+     */
+    updateFromJSON(data) {
+        this.name = data.name
+        this.id = data.id
+        this.location = new URL(data.location)
+        this.services = data.services
+        this.rinfo = data.rinfo
+    }
+
+    /**
+     * @param {Object} schema
+     * @returns {String}
+     */
+    computeName(schema) {
+        let out = null
+        if (schema && schema.root && schema.root.device) {
+            out = schema.root.device.friendlyName || schema.root.device.modelName
+        }
+        return out
+    }
+
+    /**
+     * @param {Object} schema
+     * @returns {Array<String>}
+     */
+    computeServices(schema) {
+        let out = []
+        if (schema && schema.root && schema.root.device &&
+            schema.root.device.serviceList && schema.root.device.serviceList.service) {
+            out = utils.toArray(schema.root.device.serviceList.service)
+        }
+        return out
+    }
+
+    /**
+     * @returns {String}
      */
     getName() {
-        let out = null
-        if (this.schema && this.schema.root && this.schema.root.device) {
-            out = this.schema.root.device.friendlyName || this.schema.root.device.modelName
-        }
-        return out;
+        return this.name
     }
 
     /**
      * @returns {array}
      */
     getServices() {
-        let out = []
-        if (this.schema && this.schema.root && this.schema.root.device &&
-            this.schema.root.device.serviceList && this.schema.root.device.serviceList.service) {
-            out = utils.toArray(this.schema.root.device.serviceList.service)
-        }
-        return out
+        return this.services
     }
 
     /**
