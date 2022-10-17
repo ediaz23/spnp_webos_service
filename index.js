@@ -21,8 +21,17 @@ try {
     }
 }
 
+/**
+ * @param {import('webos-service').Message} message
+ * @param {Error} error
+ * @param {String} name
+ */
 const errorHandler = (message, error, name) => {
-    message.respond({ returnValue: false, error: String(error) })
+    if (error instanceof Error) {
+        message.respond({ returnValue: false, error: `${error.name} - ${error.message}`, stack: error.stack })
+    } else {
+        message.respond({ returnValue: false, error: JSON.stringify(error)})
+    }
     logger.error(name)
     logger.error(error)
 }
