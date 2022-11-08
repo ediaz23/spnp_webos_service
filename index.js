@@ -30,7 +30,7 @@ const errorHandler = (message, error, name) => {
     if (error instanceof Error) {
         message.respond({ returnValue: false, error: `${error.name} - ${error.message}`, stack: error.stack })
     } else {
-        message.respond({ returnValue: false, error: JSON.stringify(error)})
+        message.respond({ returnValue: false, error: JSON.stringify(error) })
     }
     logger.error(name)
     logger.error(error)
@@ -102,7 +102,7 @@ service.register('search', async message => {
 
 service.register('metadata', async message => {
     try {
-        const { deviceData } = message.payload
+        const { itemId, deviceData } = message.payload
         const device = new MediaDevice()
         device.updateFromJSON(deviceData)
         const file = await device.getMetadata({ id: itemId })
