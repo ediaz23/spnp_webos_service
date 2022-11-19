@@ -337,6 +337,7 @@ class MediaDevice {
         while (loop) {  // up function are executed inside loop mp4boxfile.onReady mp4boxfile.onSamples
             try {
                 const nextChunk = filePos + bufferSize < maxSize ? filePos + bufferSize : maxSize
+                logger.info(`loop ${filePos}-${nextChunk} max:${maxSize} size:${bufferSize}`)
                 const res = await fetch(url, { headers: { Range: `bytes=${filePos}-${nextChunk}` } })
                 if ([200, 206].includes(res.status)) {
                     const arrayBuffer = await res.arrayBuffer()

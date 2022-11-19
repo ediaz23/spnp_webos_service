@@ -1,37 +1,65 @@
 
-const winston = require('winston');
+const LEVEL = process.env.LOG_LEVEL || 'debug'
+//const LEVEL = 'debug'
 
-const config = winston.config;
+const formatObj = obj => {
+    let extra = ''
+    const keys = Object.keys(obj)
+    if (keys.length) {
+        if (keys.length === 2 && keys.includes('message') && keys.includes('stack')) {
+            /** @type {Error} */
+            const err = obj
+            extra = `\n  message:${err.name}\n  stack:${err.stack}`
+        } else {
+            extra = '\n' + JSON.stringify(obj, null, '  ')
+        }
+    }
+    return extra
+}
+/** @type {Function} */
+let getMessage = null
+const colors = { debug: '\x1b[34m', info: '\x1b[32m', error: '\x1b[31m' }
+try {
+    require('webos-service')
+    getMessage = (message, level) => {
+        if (!(typeof (message) === 'string' || message instanceof String)) {
+            message = formatObj(message)
+        }
+        return `${colors[level]}${level.toUpperCase()}:\x1b[0m ${message}`
+    }
+} catch (_e) {
+    getMessage = (message, level) => {
+        if (!(typeof (message) === 'string' || message instanceof String)) {
+            message = formatObj(message)
+        }
+        return `${Date.now()} ${colors[level]}${level.toUpperCase()}\x1b[0m ${message}`
+    }
+}
+/**
+   @type {{
+    info: Function,
+    error: Function,
+    debug: Function,
+}}
+ */
+const logger = {
+    info: () => { },
+    error: () => { },
+    debug: () => { },
+}
 
-/** @type {winston.LoggerInstance} */
-const logger = new (winston.Logger)({
-    level: process.env.LOG_LEVEL || 'info',
-    transports: [
-        new (winston.transports.Console)({
-            timestamp: () => Date.now(),
-            formatter: (options) => {
-                let extra = ''
-                
-                if (options.meta) {
-                    const keys = Object.keys(options.meta)
-                    if (keys.length) {
-                        if (keys.length === 2 && keys.includes('message') && keys.includes('stack')) {
-                            /** @type {Error} */
-                            const err = options.meta
-                            extra = `\n  message:${err.name}\n  stack:${err.stack}`
-                        } else {
-                            extra = '\n'+ JSON.stringify(options.meta, null, '  ')
-                        }
-                    }
-                }
-                
-                return options.timestamp() + ' ' +
-                      config.colorize(options.level, options.level.toUpperCase()) + ' ' +
-                      (options.message ? options.message : '') + extra;
-            }
-        })
-    ]
-})
+if (!console.debug) { console.debug = console.log }
+if (!console.info) { console.info = console.log }
+if (!console.error) { console.error = console.log }
+
+/*eslint-disable */
+switch (LEVEL) {
+    case 'debug': logger.debug = msg => { console.debug(getMessage(msg, 'debug')) };
+    case 'info': logger.info = msg => { console.info(getMessage(msg, 'info')) };
+    case 'error': logger.error = msg => { console.error(getMessage(msg, 'error')) };
+        break;
+}
+/*eslint-enable */
 
 
 process.on('uncaughtException', err => {
