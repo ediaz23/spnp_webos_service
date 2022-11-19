@@ -112,6 +112,19 @@ service.register('metadata', async message => {
     }
 })
 
+service.register('extracMp4Subtitles', async message => {
+    try {
+        const { deviceData, url } = message.payload
+        const device = new MediaDevice()
+        device.updateFromJSON(deviceData)
+        const subtitles = await device.extracMp4Subtitles({ url })
+        message.respond({ subtitles })
+    } catch (error) {
+        errorHandler(message, error, 'extracMp4Subtitles')
+    }
+})
+
+
 module.exports = {
     cmsService,
     MediaDevice,

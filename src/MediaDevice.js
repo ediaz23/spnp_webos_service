@@ -2,6 +2,8 @@
 const logger = require('./logger')
 const utils = require('./utils')
 const { URL } = require('url')
+const MP4Box = require('mp4box')
+const fetch = require('node-fetch')
 
 
 class MediaDevice {
@@ -270,6 +272,88 @@ class MediaDevice {
         }
         logger.debug('out normalizeObj')
         return item
+    }
+
+    toBuffer(ab) {
+        const buffer = Buffer.alloc(ab.byteLength)
+        const view = new Uint8Array(ab)
+        for (let i = 0; i < buffer.length; ++i) {
+            buffer[i] = view[i]
+        }
+        return buffer
+    }
+
+    /**
+     * Extrar subtitles from url
+     * @param {{url: String}}
+     * @return {Promise}
+     */
+    async extracMp4Subtitles({ url }) {
+        logger.debug('in extracMp4Subtitles')
+        const mp4boxfile = MP4Box.createFile(false)
+        const subtitles = [], control = new Set()
+        let bufferSize = (1 << 10) * 500 // 500 kb
+
+        let filePos = 0, loop = true
+
+        mp4boxfile.onReady = (info) => {
+            logger.info('extracMp4Subtitles.ready')
+            if (info.subtitleTracks) {
+                loop = info.subtitleTracks.length > 0
+                for (const track of info.subtitleTracks) {
+                    track.cueList = []
+                    track.addCue = function(cue) { this.cueList.push(cue) }
+                    subtitles.push(track)
+                    mp4boxfile.setExtractionOptions(track.id, track, { nbSamples: 500 })
+                }
+                mp4boxfile.start()
+                bufferSize = (1 << 20) * 23  // 23 megabytes
+            } else {
+                loop = false
+            }
+        }
+
+        mp4boxfile.onSamples = (id, textTrack, samples) => {
+            logger.info('extracMp4Subtitles.onSamples')
+            control.add(id)
+            for (const sample of samples) {
+                const text = this.toBuffer(sample.data).toString('utf-8').substring(2)
+                textTrack.addCue({
+                    start: sample.dts / sample.timescale,
+                    end: (sample.dts + sample.duration) / sample.timescale,
+                    text: text,
+                })
+            }
+            loop = control.size < subtitles.length || textTrack.cueList.length < textTrack.nb_samples
+            mp4boxfile.releaseUsedSamples(id, textTrack.cueList.length)
+        }
+        mp4boxfile.onError = (res) => {
+            logger.error('extracMp4Subtitles mp4boxfile.Error')
+            logger.error(res)
+            loop = false
+        }
+        const resSize = await fetch(url, { method: 'HEAD' })
+        const maxSize = parseInt(resSize.headers.get('Content-Length'))
+        while (loop) {  // up function are executed inside loop mp4boxfile.onReady mp4boxfile.onSamples
+            try {
+                const nextChunk = filePos + bufferSize < maxSize ? filePos + bufferSize : maxSize
+                const res = await fetch(url, { headers: { Range: `bytes=${filePos}-${nextChunk}` } })
+                if ([200, 206].includes(res.status)) {
+                    const arrayBuffer = await res.arrayBuffer()
+                    arrayBuffer.fileStart = filePos
+                    filePos += arrayBuffer.byteLength
+                    mp4boxfile.appendBuffer(arrayBuffer)
+                } else {
+                    loop = false
+                }
+            } catch (err) {
+                logger.error('extracMp4Subtitles loop.Error')
+                logger.error(err)
+                loop = false
+            }
+        }
+        logger.debug('out extracMp4Subtitles')
+        return subtitles
     }
 }
 
