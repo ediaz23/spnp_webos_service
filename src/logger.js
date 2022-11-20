@@ -1,5 +1,5 @@
 
-const LEVEL = process.env.LOG_LEVEL || 'debug'
+const LEVEL = process.env.LOG_LEVEL || 'info'
 //const LEVEL = 'debug'
 
 const formatObj = obj => {

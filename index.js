@@ -114,13 +114,25 @@ service.register('metadata', async message => {
 
 service.register('extracMp4Subtitles', async message => {
     try {
-        const { deviceData, url } = message.payload
+        const { deviceData, ...rest } = message.payload
         const device = new MediaDevice()
         device.updateFromJSON(deviceData)
-        const subtitles = await device.extracMp4Subtitles({ url })
+        const subtitles = await device.extracMp4Subtitles(rest)
         message.respond({ subtitles })
     } catch (error) {
         errorHandler(message, error, 'extracMp4Subtitles')
+    }
+})
+
+service.register('mp4metadata', async message => {
+    try {
+        const { deviceData, url } = message.payload
+        const device = new MediaDevice()
+        device.updateFromJSON(deviceData)
+        const metadata = await device.getMp4Metadata({ url })
+        message.respond({ metadata })
+    } catch (error) {
+        errorHandler(message, error, 'mp4metadata')
     }
 })
 

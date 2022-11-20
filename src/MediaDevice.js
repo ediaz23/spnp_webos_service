@@ -285,21 +285,23 @@ class MediaDevice {
 
     /**
      * Extrar subtitles from url
-     * @param {{url: String}}
+     * @param {Object} obj
+     * @param {String} obj.url
+     * @param {Array<{type: String, size: Number, pos: Number}>} obj.atoms
      * @return {Promise}
      */
-    async extracMp4Subtitles({ url }) {
+    async extracMp4Subtitles({ url, atoms }) {
         logger.debug('in extracMp4Subtitles')
         const mp4boxfile = MP4Box.createFile(false)
         const subtitles = [], control = new Set()
-        let bufferSize = (1 << 10) * 500 // 500 kb
-
-        let filePos = 0, loop = true
+        const bufferSize = (1 << 20) * 23 // 5 Mb
+        const ignore = ['mdat', 'free']
+        let bufferPos = 0, okey = true
 
         mp4boxfile.onReady = (info) => {
             logger.info('extracMp4Subtitles.ready')
             if (info.subtitleTracks) {
-                loop = info.subtitleTracks.length > 0
+                okey = info.subtitleTracks.length > 0
                 for (const track of info.subtitleTracks) {
                     track.cueList = []
                     track.addCue = function(cue) { this.cueList.push(cue) }
@@ -307,12 +309,8 @@ class MediaDevice {
                     mp4boxfile.setExtractionOptions(track.id, track, { nbSamples: 500 })
                 }
                 mp4boxfile.start()
-                bufferSize = (1 << 20) * 23  // 23 megabytes
-            } else {
-                loop = false
             }
         }
-
         mp4boxfile.onSamples = (id, textTrack, samples) => {
             logger.info('extracMp4Subtitles.onSamples')
             control.add(id)
@@ -324,37 +322,86 @@ class MediaDevice {
                     text: text,
                 })
             }
-            loop = control.size < subtitles.length || textTrack.cueList.length < textTrack.nb_samples
+            okey = control.size < subtitles.length || textTrack.cueList.length < textTrack.nb_samples
             mp4boxfile.releaseUsedSamples(id, textTrack.cueList.length)
         }
         mp4boxfile.onError = (res) => {
             logger.error('extracMp4Subtitles mp4boxfile.Error')
             logger.error(res)
-            loop = false
+            okey = false
         }
-        const resSize = await fetch(url, { method: 'HEAD' })
-        const maxSize = parseInt(resSize.headers.get('Content-Length'))
-        while (loop) {  // up function are executed inside loop mp4boxfile.onReady mp4boxfile.onSamples
-            try {
-                const nextChunk = filePos + bufferSize < maxSize ? filePos + bufferSize : maxSize
-                logger.info(`loop ${filePos}-${nextChunk} max:${maxSize} size:${bufferSize}`)
-                const res = await fetch(url, { headers: { Range: `bytes=${filePos}-${nextChunk}` } })
+        const readAtom = async atom => {
+            logger.info('extracMp4Subtitles.readAtom ' + atom.type)
+            const endAtom = atom.pos + atom.size
+            for (let pos = atom.pos; pos < endAtom && okey; pos += bufferSize) {
+                const nextChunk = Math.min(pos + bufferSize, endAtom - 1)
+                const res = await fetch(url, { headers: { Range: `bytes=${pos}-${nextChunk}` } })
                 if ([200, 206].includes(res.status)) {
                     const arrayBuffer = await res.arrayBuffer()
-                    arrayBuffer.fileStart = filePos
-                    filePos += arrayBuffer.byteLength
+                    arrayBuffer.fileStart = bufferPos
+                    bufferPos += arrayBuffer.byteLength
                     mp4boxfile.appendBuffer(arrayBuffer)
                 } else {
-                    loop = false
+                    okey = false
                 }
-            } catch (err) {
-                logger.error('extracMp4Subtitles loop.Error')
-                logger.error(err)
-                loop = false
             }
         }
+        for (const atom of atoms) {
+            if (!ignore.includes(atom.type)) {
+                await readAtom(atom)
+            }
+            if (!okey) { break }
+        }
+        const atom = atoms.find(atom => atom.type === 'mdat')
+        if (okey && atom) {
+            await readAtom(atom)
+        }
+        mp4boxfile.flush()
         logger.debug('out extracMp4Subtitles')
         return subtitles
+    }
+
+    /**
+     * Return mp4 metadata with, size and atoms.
+     * @param {{url: String}}
+     * @returns {Promise<{size: Number, atoms: Array<{type: String, size: Number, pos: Number}>}>}
+     */
+    async getMp4Metadata({ url }) {
+        logger.debug('getMp4Metadata in')
+        const metadata = { size: 0, atoms: [], }
+        const resSize = await fetch(url, { method: 'HEAD' })
+        const size = parseInt(resSize.headers.get('Content-Length'))
+        metadata.size = size
+
+        try {
+            metadata.atoms = await this.getMp4Atoms(url, size)
+        } catch (_e) {
+            // nada
+        }
+        logger.debug('getMp4Metadata out')
+        return metadata
+    }
+
+    /**
+     * Returns mp4 atoms
+     * @param {String} url
+     * @param {Number} fileSize
+     * @returns {Promise<{size: Number, atoms: Array<{type: String, size: Number, pos: Number}>}>}
+     */
+    async getMp4Atoms(url, fileSize) {
+        const buffers = []
+        const basicSize = 8
+        let size = 0
+
+        for (let pos = 0; pos < fileSize; pos += size) {
+            const res = await fetch(url, { headers: { Range: `bytes=${pos}-${pos + basicSize}` } })
+            const buffer = Buffer.from(await res.arrayBuffer())
+            size = buffer.readInt32BE()
+            if (size < 0) { throw new Error('not mp4') }
+            const type = buffer.toString('utf8', 4, 8)
+            buffers.push({ type, size, pos })
+        }
+        return buffers
     }
 }
 
