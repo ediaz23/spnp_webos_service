@@ -61,7 +61,7 @@ class CmsService extends EventEmitter {
                 this.client.search(st)
                 setTimeout(() => {
                     this.stopSsdp().then(() => res(Object.values(this.devices)))
-                }, 700)
+                }, 800)
             } catch (error) {
                 rej(error)
             }
